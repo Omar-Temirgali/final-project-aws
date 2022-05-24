@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-// import logo from './logo.svg';
 import './App.css';
 // import { withAuthenticator, AmplifySignOut } from '@aws-amplify/ui-react'
-import { API } from 'aws-amplify';
+import { API, Storage } from 'aws-amplify';
 import { Authenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
 import { listNotes } from './graphql/queries';
@@ -21,12 +20,24 @@ function App() {
 
   async function fetchNotes() {
     const apiData = await API.graphql({ query: listNotes });
+    const notesFromAPI = apiData.data.listNotes.items;
+    await Promise.all(notesFromAPI.map(async note => {
+      if (note.image) {
+        const image = await Storage.get(note.image);
+        note.image = image;
+      }
+      return note;
+    }))
     setNotes(apiData.data.listNotes.items);
   }
 
   async function createNote() {
     if (!formData.name || !formData.description) return;
     await API.graphql({ query: createNoteMutation, variables: { input: formData } });
+    if (formData.image) {
+      const image = await Storage.get(formData.image);
+      formData.image = image;
+    }
     setNotes([ ...notes, formData ]);
     setFormData(initialFormState);
   }
@@ -37,9 +48,19 @@ function App() {
     await API.graphql({ query: deleteNoteMutation, variables: { input: { id } }});
   }
 
+  async function onChange(e) {
+    if (!e.target.files[0]) return
+    const file = e.target.files[0];
+    setFormData({ ...formData, image: file.name });
+    await Storage.put(file.name, file);
+    fetchNotes();
+  }
+
+
+
   return (
     <><div className="App">
-      <h1>My Notes App</h1>
+      <h1>Final Project AWS</h1>
       <input
         onChange={e => setFormData({ ...formData, 'name': e.target.value })}
         placeholder="Note name"
@@ -50,14 +71,23 @@ function App() {
         value={formData.description} />
       <button onClick={createNote}>Create Note</button>
       <div style={{ marginBottom: 30 }}>
-        {notes.map(note => (
-          <div key={note.id || note.name}>
-            <h2>{note.name}</h2>
-            <p>{note.description}</p>
-            <button onClick={() => deleteNote(note)}>Delete note</button>
-          </div>
-        ))}
+      {
+    notes.map(note => (
+      <div key={note.id || note.name}>
+        <h2>{note.name}</h2>
+        <p>{note.description}</p>
+        <button onClick={() => deleteNote(note)}>Delete note</button>
+        {
+          note.image && <img src={note.image} alt="" style={{width: 400}} />
+        }
       </div>
+    ))
+  }
+      </div>
+      <input
+        type="file"
+        onChange={onChange}
+      />
     </div>
     <Authenticator>
         {({ signOut, user }) => (
@@ -70,6 +100,7 @@ function App() {
         )}
       </Authenticator></>
   );
+  
 }
 
 export default App;
