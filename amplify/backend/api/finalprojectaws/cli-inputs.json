@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "serviceConfiguration": {
+    "apiName": "finalprojectaws",
+    "serviceName": "AppSync",
+    "gqlSchemaPath": "C:\\MyFiles\\SDU\\3rd COURSE\\6th SEMESTER\\AWS Cloud Computing [INF 378]\\react-project\\final-project\\amplify\\backend\\api\\finalprojectaws\\schema.graphql",
+    "defaultAuthType": {
+      "mode": "API_KEY",
+      "expirationTime": 7
+    }
+  }
+}
